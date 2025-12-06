@@ -103,7 +103,10 @@ T* shared_ptr<T>::operator->() const noexcept { return get(); }
 template<typename T>
 void shared_ptr<T>::reset() noexcept {
     if (data == nullptr) { return; }
-    if (use_count() == 1) { delete data; } 
+    if (use_count() == 1) { 
+        delete data;
+        delete cb;
+    } 
     else { cb->removeSharedCount(); }
     data = nullptr;
     cb = nullptr;
