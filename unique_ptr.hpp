@@ -7,6 +7,7 @@ class unique_ptr {
         T* data;
 
     public:
+        unique_ptr() noexcept;
         explicit unique_ptr(T* ptr) noexcept;
         unique_ptr(const unique_ptr& u) = delete;
         unique_ptr& operator=(const unique_ptr& u) = delete;
@@ -27,6 +28,9 @@ class unique_ptr {
         friend bool operator==(const unique_ptr<U>& u1, const unique_ptr<U>& u2);
 
 };
+
+template<typename T>
+unique_ptr<T>::unique_ptr() noexcept : data { nullptr } {}
 
 template<typename T>
 unique_ptr<T>::unique_ptr(T* ptr) noexcept : data { ptr } {}
