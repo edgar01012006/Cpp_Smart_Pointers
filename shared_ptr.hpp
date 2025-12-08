@@ -21,6 +21,7 @@ class shared_ptr {
         CB* cb;
 
     public:
+        shared_ptr() noexcept;
         explicit shared_ptr(T* ptr) noexcept;
         shared_ptr(const shared_ptr& s) noexcept;
         shared_ptr& operator=(const shared_ptr& s) noexcept;
@@ -38,6 +39,9 @@ class shared_ptr {
         void reset() noexcept;
         void reset(T* ptr); 
 };
+
+template<typename T>
+shared_ptr<T>::shared_ptr() noexcept : data { nullptr }, cb { nullptr } {}
 
 template<typename T>
 shared_ptr<T>::shared_ptr(T* ptr) noexcept : data { ptr }, cb { new CB(1) } {}
