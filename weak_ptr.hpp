@@ -15,7 +15,6 @@ class weak_ptr {
     public:
         weak_ptr() noexcept;
 
-        // TODO: this might be error because of template
         weak_ptr(const shared_ptr<T>& r) noexcept;
         weak_ptr& operator=(const shared_ptr<T>& r) noexcept;
 
