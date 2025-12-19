@@ -1,36 +1,48 @@
 #ifndef SHARED_PTR_HPP
 #define SHARED_PTR_HPP
 
-class CB {
+#include <string>
+
+#include "cb_base.hpp"
+
+class bad_weak_ptr {
     private:
-        long shared_count;
+        std::string m_msg;
 
     public:
-        CB() : shared_count { 0 } {}
-        CB(long sc) : shared_count { sc } {}
-
-        void addSharedCount() noexcept { ++shared_count; }
-        void removeSharedCount() noexcept { --shared_count; }
-        long getSharedCount() const noexcept { return shared_count; }
+        bad_weak_ptr(const std::string& msg) : m_msg { msg } {}
+        std::string what() const noexcept { return m_msg; }
 };
 
 template<typename T>
+class weak_ptr;
+
+template<typename T>
 class shared_ptr {
+    friend class weak_ptr<T>;
+
     private:
         T* data;
-        CB* cb;
+        cb_base<T>* cb;
 
     public:
         shared_ptr() noexcept;
         explicit shared_ptr(T* ptr) noexcept;
+
+        shared_ptr(const weak_ptr<T>& r);
+
         shared_ptr(const shared_ptr& s) noexcept;
         shared_ptr& operator=(const shared_ptr& s) noexcept;
+
         shared_ptr(shared_ptr&& s) noexcept;
         shared_ptr& operator=(shared_ptr&& s) noexcept;
+
         ~shared_ptr();
 
         T* get() const noexcept;
+
         long use_count() const noexcept;
+
         explicit operator bool() const noexcept;
 
         T& operator*() const noexcept;
@@ -44,7 +56,15 @@ template<typename T>
 shared_ptr<T>::shared_ptr() noexcept : data { nullptr }, cb { nullptr } {}
 
 template<typename T>
-shared_ptr<T>::shared_ptr(T* ptr) noexcept : data { ptr }, cb { new CB(1) } {}
+shared_ptr<T>::shared_ptr(T* ptr) noexcept : data { ptr }, cb { new cb_base<T>(data) } {}
+
+template<typename T>
+shared_ptr<T>::shared_ptr(const weak_ptr<T>& r) {
+    if (r.use_count() == 0) { throw bad_weak_ptr("bad weak ptr"); }
+    data = r.data;
+    cb = r.cb;
+    cb->add_ref_count();
+}
 
 template<typename T>
 shared_ptr<T>::shared_ptr(const shared_ptr& s) noexcept 
@@ -52,7 +72,7 @@ shared_ptr<T>::shared_ptr(const shared_ptr& s) noexcept
     if (s.data != nullptr) {
         data = s.data;
         cb = s.cb;
-        cb->addSharedCount();
+        cb->add_ref_count();
     }
 }
 
@@ -63,7 +83,7 @@ shared_ptr<T>& shared_ptr<T>::operator=(const shared_ptr& s) noexcept {
     if (s.data != nullptr) {
         data = s.data;
         cb = s.cb;
-        cb->addSharedCount();
+        cb->add_ref_count();
     }
     return *this;
 }
@@ -93,7 +113,7 @@ template<typename T>
 T* shared_ptr<T>::get() const noexcept { return data; }
 
 template<typename T>
-long shared_ptr<T>::use_count() const noexcept { return cb->getSharedCount(); }
+long shared_ptr<T>::use_count() const noexcept { return cb->get_ref_count(); }
 
 template<typename T>
 shared_ptr<T>::operator bool() const noexcept { return get() != nullptr ? true : false; } 
@@ -107,11 +127,7 @@ T* shared_ptr<T>::operator->() const noexcept { return get(); }
 template<typename T>
 void shared_ptr<T>::reset() noexcept {
     if (data == nullptr) { return; }
-    if (use_count() == 1) { 
-        delete data;
-        delete cb;
-    } 
-    else { cb->removeSharedCount(); }
+    else { cb->release_ref_count(); }
     data = nullptr;
     cb = nullptr;
 }
@@ -120,7 +136,7 @@ template<typename T>
 void shared_ptr<T>::reset(T* ptr) {
     reset();
     data = ptr;
-    cb = new CB(1);
+    cb = new cb_base<T>(data);
 }
 
 #endif
